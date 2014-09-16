@@ -20,17 +20,19 @@ extractFileDates = function(name){
 
 ## Read the image as raster
 readNdviImage = function(file){
-    date = extractFileDates(file)
     v = raster(file)
     v
 }
 
 
 ## Function to interpolate using spline
-imageSpline = function(x, y, xout){
-    x.new = max(xout)
-    y.new = y[1]
-    x.spline = spline(x = x, y = y, xout = xout, method = "natural")
+imageSpline = function(x, y, xout, method = "natural", ...){
+    x.max = max(xout)
+    if(method == "periodic"){
+        x = c(x, x.max)
+        y = c(y, y[1])
+    }
+    x.spline = spline(x = x, y = y, xout = xout, method = method, ...)
     x.spline
 }
 
@@ -43,6 +45,7 @@ for(i in seq_along(files)){
     dates[i] = extractFileDates(files[i])
 }
 
+
 ## Plot the pixel 1 over time with the spline
 jpeg(file = "pixel1_timeseries.jpeg", width = 720)
 plot(dates, image.arr[1, 1, ], pch = 19,
@@ -50,9 +53,28 @@ plot(dates, image.arr[1, 1, ], pch = 19,
      xlab = "Dates", ylab = "NDVI")
 lines(imageSpline(x = dates, image.arr[1, 1, ], xout = 1:365))
 legend("topleft",
-       legend = c("Observed image value", "Interpolated image value"),
+       legend = c("Observed image value",
+           "Natural Spline Interpolated image value"),
        lty = c(NA, 1), pch = c(19, NA), bty = "n")
 graphics.off()
+
+
+## Plot the pixel 1 over time with the spline
+jpeg(file = "pixel1_timeseries2.jpeg", width = 720)
+plot(dates, image.arr[1, 1, ], pch = 19,
+     main = "Observed images values and interpolation for pixel 1",
+     xlab = "Dates", ylab = "NDVI")
+lines(imageSpline(x = dates, image.arr[1, 1, ], xout = 1:365))
+lines(imageSpline(x = dates, image.arr[1, 1, ], xout = 1:365,
+                  method = "periodic"), col = "red")
+legend("topleft",
+       legend = c("Observed image value",
+           "Natural Spline Interpolated image value",
+           "Periodic Spline Interpolated image value"),
+       lty = c(NA, 1, 1), pch = c(19, NA, NA),
+       col = c("black", "black", "red"), bty = "n")
+graphics.off()
+
 
 ## Interpolate the images
 interpolated.lst = vector(mode = "list", length = 1200)
